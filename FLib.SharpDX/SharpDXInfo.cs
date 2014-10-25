@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Diagnostics;
 using SharpDX;
@@ -18,16 +19,20 @@ namespace FLib.SharpDX
     {
         internal Device Device { get; private set; }
         internal SwapChain SwapChain { get; private set; }
-        internal Form Form { get; private set; }
+        internal IntPtr Handle { get; private set; }
+        internal System.Drawing.Size Size { get; private set; }
         internal DepthStencilView DepthView { get; private set; }
         internal RenderTargetView RenderView { get; private set; }
 
         internal Buffer VertexBuffer { get; private set; }
+        internal Buffer IndexBuffer { get; private set; }
         internal Buffer CameraBuffer { get; private set; }
         internal Texture2D DepthBuffer { get; private set; }
         internal Texture2D Texture { get; set; }
+        internal ShaderResourceView TextureView { get; set; }
 
         internal VertexPositionColorTexture[] rawVertices;
+        internal int[] rawIndices;
 
         internal VertexShader VertexShader { get; private set; }
         internal PixelShader PixelShader { get; private set; }
@@ -35,25 +40,61 @@ namespace FLib.SharpDX
         internal Texture2D BackBuffer { get; private set; }
         internal Factory Factory { get; private set; }        
 
-        internal SharpDXInfo(Device dev, SwapChain sc, Form f, DepthStencilView dv, RenderTargetView rt, Buffer vb, Buffer cb, Texture2D db, VertexPositionColorTexture[] rawVertices, Texture2D tex,VertexShader vertexShader,PixelShader pixelShader,InputLayout layout,Texture2D backBuffer,Factory factory)
+        internal SharpDXInfo(Device dev, SwapChain sc, IntPtr h, System.Drawing.Size sz, 
+            DepthStencilView dv, RenderTargetView rt, 
+            Buffer vb, Buffer ib, Buffer cb, 
+            Texture2D db,
+            IEnumerable<VertexPositionColorTexture> rawVertices, IEnumerable<int> rawIndices,
+            Texture2D tex, ShaderResourceView texView, 
+            VertexShader vertexShader, PixelShader pixelShader, InputLayout layout,
+            Texture2D backBuffer,Factory factory)
         {
             Device = dev;
             SwapChain = sc;
-            Form  = f;
+            Handle = h;
+            Size = sz;
             DepthView = dv;
-            RenderView  = rt;
+            RenderView = rt;
             VertexBuffer = vb;
+            IndexBuffer = ib;
             CameraBuffer = cb;
             DepthBuffer = db;
-            this.rawVertices = rawVertices;
+            this.rawVertices = rawVertices.ToArray();
+            this.rawIndices = rawIndices.ToArray();
 
-            Texture = tex;            
+            Texture = tex;
+            TextureView = texView;
             
             VertexShader = vertexShader;
             PixelShader = pixelShader;
             InputLayout = layout;
             BackBuffer = backBuffer;
             Factory = factory;
+        }
+
+        internal void UpdateBuffers(Buffer vertexBuffer = null, Buffer indexBuffer = null, Buffer cameraBuffer = null)
+        {
+            if (vertexBuffer != null && this.VertexBuffer != vertexBuffer)
+            {
+                this.VertexBuffer.Dispose();
+                this.VertexBuffer = vertexBuffer;
+            }
+            if (indexBuffer != null && this.IndexBuffer != indexBuffer)
+            {
+                this.IndexBuffer.Dispose();
+                this.IndexBuffer = indexBuffer;
+            }
+            if (cameraBuffer != null && this.CameraBuffer != cameraBuffer)
+            {
+                this.CameraBuffer.Dispose();
+                this.CameraBuffer = cameraBuffer;
+            }
+        }
+
+        internal void UpdateTexture(Texture2D texture, ShaderResourceView textureView)
+        {
+            this.Texture = texture;
+            this.TextureView = textureView;
         }
 
         public void Dispose()
@@ -71,5 +112,6 @@ namespace FLib.SharpDX
             BackBuffer.Dispose();
             Factory.Dispose();
         }
+
     }
 }
