@@ -51,6 +51,7 @@
   <ItemGroup>
     <Compile Include="BitmapHandler.cs" />
     <Compile Include="BitmapIterator.cs" />
+    <Compile Include="FileManager.cs" />
     <Compile Include="Triangle.cs" />
     <Compile Include="FMath.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

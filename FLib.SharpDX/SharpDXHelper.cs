@@ -25,8 +25,16 @@ namespace FLib.SharpDX
             Vertex, Index, Camera
         }
 
-
         const string DefaultShaderPath = "defaultShader.fx";
+
+        // デフォルトのrenderInfo
+        static SharpDXInfo defaultInfo = null;
+        public static void SetDefaultRenderInfo(SharpDXInfo info)
+        {
+            defaultInfo = info;
+        }
+
+        //-------------------------------------------------------------------
 
         public static SharpDXInfo Initialize(Form form, IEnumerable<VertexPositionColorTexture> rawVertices, IEnumerable<int> rawIndices, Matrix viewWorldProj, string texturePath)
         {
@@ -283,11 +291,19 @@ namespace FLib.SharpDX
 
         /// <summary>
         /// bmpを一時ファイルに書き出してTexture2D.FromFile()で読み込みなおしている。非常に遅いので注意
+        /// なお、SharpDXInfoが必要だが、これは事前にSetDefaultSharpDXInfoで設定しておくこと
         /// </summary>
         /// <param name="info"></param>
         /// <param name="bmp"></param>
         /// <returns></returns>
-        public static Texture2D BitmapToTexture(SharpDXInfo info, System.Drawing.Bitmap bmp)
+        public static Texture2D BitmapToTexture(System.Drawing.Bitmap bmp)
+        {
+            if ( defaultInfo == null)
+                throw new Exception("defaultInfo is null. Please set default rendering info by calling SetDefaultRenderInfo() beforehand.");
+            return BitmapToTexture(defaultInfo, bmp);
+        }
+
+        static Texture2D BitmapToTexture(SharpDXInfo info, System.Drawing.Bitmap bmp)
         {
             if (bmp == null)
                 return null;

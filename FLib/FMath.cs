@@ -404,5 +404,24 @@ namespace FLib
 
             return min;
         }
+
+        public static int Rem(int idx, int n)
+        {
+            if (n <= 0)
+                return idx;
+            while (idx < 0)
+                idx += n;
+            return idx % n;
+        }
+
+        public static List<PointF> ShiftPath(List<PointF> path, float offsetx, float offsety)
+        {
+            if (path == null)
+                return new List<PointF>();
+            List<PointF> _path = new List<PointF>();
+            for (int i = 0; i < path.Count; i++)
+                _path.Add(new PointF(path[i].X + offsetx, path[i].Y + offsety));
+            return _path;
+        }
     }
 }
