@@ -177,8 +177,9 @@ namespace FLib.SharpDX
             info.Device.ImmediateContext.ClearRenderTargetView(info.RenderView, Color.Black);
         }
 
-        public static void DrawMesh(SharpDXInfo info)
+        public static void Draw(SharpDXInfo info, PrimitiveTopology primitiveType)
         {
+            info.Device.ImmediateContext.InputAssembler.PrimitiveTopology = primitiveType;
             info.Device.ImmediateContext.DrawIndexed(info.rawIndices.Length, 0, 0);
         }
 
@@ -312,6 +313,13 @@ namespace FLib.SharpDX
             var texture = Texture2D.FromFile<Texture2D>(info.Device, tmpFile);
             return texture;
         }
+
+        /// TODO! : textureをコピーする 
+        public Texture2D CopyTexture(Texture2D texture)
+        {
+            return texture;
+        }
+
 
         /// <summary>
         /// メッシュの描画に使うテクスチャを設定する。

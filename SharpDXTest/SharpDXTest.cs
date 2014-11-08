@@ -86,7 +86,7 @@ namespace MiniCubeTexure
                     SharpDXHelper.UpdateIndexBuffer(info, rawIndices.Take(cnt));
                     //Math.Min(rawIndices.Length, 3 * (clock.ElapsedMilliseconds / 500))).ToList());
                 }
-                SharpDXHelper.DrawMesh(info);
+                SharpDXHelper.Draw(info, PrimitiveTopology.TriangleList);
                 SharpDXHelper.EndDraw(info);
             });
 
