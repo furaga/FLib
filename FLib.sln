@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpDXTest", "SharpDXTest\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FLib.SharpDX", "FLib.SharpDX\FLib.SharpDX.csproj", "{4C5C40B0-4EF0-477E-BE70-A8FB789E4644}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FLibTests", "FLibTests\FLibTests.csproj", "{D37F9C9E-2CAC-4AAC-BB9F-BF3BA89DD9B1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{4C5C40B0-4EF0-477E-BE70-A8FB789E4644}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4C5C40B0-4EF0-477E-BE70-A8FB789E4644}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4C5C40B0-4EF0-477E-BE70-A8FB789E4644}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D37F9C9E-2CAC-4AAC-BB9F-BF3BA89DD9B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D37F9C9E-2CAC-4AAC-BB9F-BF3BA89DD9B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D37F9C9E-2CAC-4AAC-BB9F-BF3BA89DD9B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D37F9C9E-2CAC-4AAC-BB9F-BF3BA89DD9B1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -57,14 +57,42 @@ namespace FLib
 
         public static bool IsCrossed(PointF p1, PointF p2, PointF p3, PointF p4)
         {
+            float t12, t34;
+            CrossPointParameters(p1, p2, p3, p4, out t12, out t34);
+            if (float.IsNaN(t12) || float.IsNaN(t34))
+                return false;
+            return -1e-4 <= t12 && t12 <= 1 + 1e-4 && -1e-4 <= t34 && t34 <= 1 + 1e-4;
+        }
+
+        /// <summary>
+        /// p1-p2, p3-p4の交点を返す。平行だったらPoint.Empty。線分の外部で交差している場合も交点を返す
+        /// </summary>
+        public static PointF CrossPoint(PointF p1, PointF p2, PointF p3, PointF p4)
+        {
+            float t12, t34;
+            CrossPointParameters(p1, p2, p3, p4, out t12, out t34);
+            if (float.IsNaN(t12) || float.IsNaN(t34))
+                return Point.Empty;
+            PointF cross1 = Interpolate(p1, p2, t12);
+#if DEBUG
+            PointF cross2 = Interpolate(p3, p4, t34);
+            System.Diagnostics.Debug.Assert(Math.Abs(cross1.X - cross2.X) <= 1e-4);
+            System.Diagnostics.Debug.Assert(Math.Abs(cross1.Y - cross2.Y) <= 1e-4);
+#endif
+            return cross1;
+        }
+
+        public static void CrossPointParameters(PointF p1, PointF p2, PointF p3, PointF p4, out float t12, out float t34)
+        {
+            t12 = float.NaN;
+            t34 = float.NaN;
             float ksi = (p4.Y - p3.Y) * (p4.X - p1.X) - (p4.X - p3.X) * (p4.Y - p1.Y);
             float eta = -(p2.Y - p1.Y) * (p4.X - p1.X) + (p2.X - p1.X) * (p4.Y - p1.Y);
             float delta = (p4.Y - p3.Y) * (p2.X - p1.X) - (p4.X - p3.X) * (p2.Y - p1.Y);
             if (Math.Abs(delta) <= 1e-4)
-                return false;
-            float lambda = ksi / delta;
-            float mu = eta / delta;
-            return -1e-4 <= lambda && lambda <= 1 + 1e-4 && -1e-4 <= mu && mu <= 1 + 1e-4;
+                return;
+            t12 = ksi / delta;
+            t34 = 1 - eta / delta;
         }
 
         public static bool IsCrossed(PointF p1, PointF p2, List<PointF> path)
@@ -423,5 +451,6 @@ namespace FLib
                 _path.Add(new PointF(path[i].X + offsetx, path[i].Y + offsety));
             return _path;
         }
+
     }
 }
