@@ -161,7 +161,7 @@ namespace FLib.SharpDX
                 UpdateVertexBuffer(info, rawVertices);
                 UpdateIndexBuffer(info, rawIndices);
                 UpdateCameraBuffer(info, viewWorldProj);
-
+                
                 return info;
             }
         }
@@ -337,5 +337,6 @@ namespace FLib.SharpDX
             info.UpdateTexture(texture, textureView);
             info.Device.ImmediateContext.PixelShader.SetShaderResource(0, info.TextureView);
         }
+
     }
 }
