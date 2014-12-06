@@ -72,21 +72,24 @@ namespace FLib.SharpDX
             Factory = factory;
         }
 
+        /// <summary>
+        /// ここではbufferの破棄（Dispose()）は実行しない。SharpDXHelperなどでbufferをキャッシュする実装があり得るため。
+        /// </summary>
         internal void UpdateBuffers(Buffer vertexBuffer = null, Buffer indexBuffer = null, Buffer cameraBuffer = null)
         {
             if (vertexBuffer != null && this.VertexBuffer != vertexBuffer)
             {
-                this.VertexBuffer.Dispose();
+//                this.VertexBuffer.Dispose();
                 this.VertexBuffer = vertexBuffer;
             }
             if (indexBuffer != null && this.IndexBuffer != indexBuffer)
             {
-                this.IndexBuffer.Dispose();
+//                this.IndexBuffer.Dispose();
                 this.IndexBuffer = indexBuffer;
             }
             if (cameraBuffer != null && this.CameraBuffer != cameraBuffer)
             {
-                this.CameraBuffer.Dispose();
+ //               this.CameraBuffer.Dispose();
                 this.CameraBuffer = cameraBuffer;
             }
         }

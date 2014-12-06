@@ -155,6 +155,12 @@ namespace FLib
             return dist;
         }
 
+        /// <summary>
+        /// pathは終点と始点は一致しない。つまりpathは閉じていない
+        /// </summary>
+        /// <param name="pointTarget"></param>
+        /// <param name="path"></param>
+        /// <returns></returns>
         public static bool IsPointInPolygon(PointF pointTarget, List<PointF> path)
         {
             if (path == null || path.Count <= 2)

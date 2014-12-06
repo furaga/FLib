@@ -25,6 +25,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -36,7 +37,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <Choose>
     <When Condition="('$(VisualStudioVersion)' == '10.0' or '$(VisualStudioVersion)' == '') and '$(TargetFrameworkVersion)' == 'v3.5'">
@@ -52,7 +55,23 @@
   </Choose>
   <ItemGroup>
     <Compile Include="FMathTests.cs" />
+    <Compile Include="ForceSerializerTests.cs" />
+    <Compile Include="TestData\PatchworkLib\ARAPDeformation.cs" />
+    <Compile Include="TestData\PatchworkLib\PatchControlPoint.cs" />
+    <Compile Include="TestData\PatchworkLib\PatchMesh.cs" />
+    <Compile Include="TestData\PatchworkLib\PatchMeshCollision.cs" />
+    <Compile Include="TestData\PatchworkLib\PatchSkeletalMesh.cs" />
+    <Compile Include="TestData\PatchworkLib\PatchSkeleton.cs" />
+    <Compile Include="TestData\PatchworkLib\PatchSkeletonFitting.cs" />
+    <Compile Include="TestData\PatchworkLib\PatchTriangle.cs" />
+    <Compile Include="TestData\PatchworkLib\PatchVertex.cs" />
+    <Compile Include="TestData\PatchworkLib\PathSubdivision.cs" />
+    <Compile Include="TestData\PatchworkLib\Segmentation.cs" />
+    <Compile Include="TestData\PatchworkLib\SegmentLoader.cs" />
+    <Compile Include="TestData\PatchworkLib\SegmentToPatch.cs" />
+    <Compile Include="TestData\PatchworkLib\SkeletonAnnotation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TreeTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FLib\FLib.csproj">

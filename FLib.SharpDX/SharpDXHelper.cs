@@ -231,9 +231,10 @@ namespace FLib.SharpDX
             // 頂点数が既存のデータと違ってたら頂点バッファを作り直す
             if (rawVertices.Count() != info.rawVertices.Length)
             {
-                info.VertexBuffer.Dispose(); 
-                var buffer = CreateBuffer<VertexPositionColorTexture>(info.Device, BindFlags.VertexBuffer, rawVertices.Count());
-                info.UpdateBuffers(vertexBuffer : buffer);
+                if (!vertexBufferPool.ContainsKey(rawVertices.Count()))
+                    vertexBufferPool[rawVertices.Count()] = CreateBuffer<VertexPositionColorTexture>(info.Device, BindFlags.VertexBuffer, rawVertices.Count());
+                Buffer buffer = vertexBufferPool[rawVertices.Count()];
+                info.UpdateBuffers(vertexBuffer: buffer);
                 var binding = new VertexBufferBinding(info.VertexBuffer, Utilities.SizeOf<VertexPositionColorTexture>(), 0);
                 info.Device.ImmediateContext.InputAssembler.SetVertexBuffers(0, binding);
                 info.rawVertices = rawVertices.ToArray();
@@ -249,6 +250,9 @@ namespace FLib.SharpDX
             info.Device.ImmediateContext.UnmapSubresource(info.VertexBuffer, 0);
         }
 
+        static Dictionary<int, Buffer> vertexBufferPool = new Dictionary<int, Buffer>();
+        static Dictionary<int, Buffer> indexBufferPool = new Dictionary<int, Buffer>();
+
         public static void UpdateIndexBuffer(SharpDXInfo info, IEnumerable<int> rawIndices)
         {
             if (rawIndices == null)
@@ -257,8 +261,9 @@ namespace FLib.SharpDX
             // 頂点数が既存のデータと違ってたらインデックスバッファを作り直す
             if (rawIndices.Count() != info.rawIndices.Length)
             {
-                info.IndexBuffer.Dispose(); 
-                var buffer = CreateBuffer<int>(info.Device, BindFlags.IndexBuffer, rawIndices.Count());
+                if (!indexBufferPool.ContainsKey(rawIndices.Count()))
+                    indexBufferPool[rawIndices.Count()] = CreateBuffer<int>(info.Device, BindFlags.IndexBuffer, rawIndices.Count());
+                Buffer buffer = indexBufferPool[rawIndices.Count()];
                 info.UpdateBuffers(indexBuffer: buffer);
                 var binding = new VertexBufferBinding(info.IndexBuffer, Utilities.SizeOf<int>(), 0);
                 info.Device.ImmediateContext.InputAssembler.SetIndexBuffer(buffer, Format.R32_UInt, 0);
