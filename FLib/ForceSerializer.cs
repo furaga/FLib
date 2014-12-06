@@ -21,7 +21,9 @@ namespace FLib
             System.Reflection.BindingFlags.NonPublic |
             System.Reflection.BindingFlags.Static;
 
-        [Serializable]
+        static readonly System.Text.RegularExpressions.Regex arraySuffix = 
+            new System.Text.RegularExpressions.Regex(@"\[,*\]$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
         class SerializeTreeNode
         {
             public string varName;
@@ -29,7 +31,7 @@ namespace FLib
             public Object varValue;
             public List<SerializeTreeNode> nodes = new List<SerializeTreeNode>();
 
-            // 他のTreeの参照を使う
+            // 他の変数と同じオブジェクトを参照している場合
             public void SetReference(SerializeTreeNode refTree)
             {
                 this.isRefer = true;
@@ -53,6 +55,7 @@ namespace FLib
 
         public static void Serialize(string savePath, Object obj, string filename)
         {
+            // objectをシリアライズ可能なデータ構造に変換する
             var obj2tree = new Dictionary<object, SerializeTreeNode>();
             var tree = MakeSerializable(obj, filename);
 
@@ -103,20 +106,22 @@ namespace FLib
             subtree.varValue = obj;
 
             // 既存のオブジェクトを参照している場合。その旨を記録して戻る
-            if (subtree.varType.FullName != typeof(string).FullName && subtree.varType.IsClass && obj2tree.ContainsKey(subtree.varValue))
+            if (subtree.varType.IsClass && !IsString(subtree.varType) && obj2tree.ContainsKey(subtree.varValue))
             {
                 subtree.SetReference(obj2tree[subtree.varValue]);
                 return subtree;
             }
-            else
-            {
-                obj2tree[subtree.varValue] = subtree;
-            }
 
-            // 列挙型か
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-            if (IsIEnumerableType(obj.GetType()))
+                obj2tree[subtree.varValue] = subtree;
+            
+            if (IsString(obj.GetType()))
             {
+                //stringの場合、charの配列に分解されたくない
+                return subtree;
+            }
+            else if (IsIEnumerableType(obj.GetType()))
+            {
+                // 列挙型
                 dynamic list = obj;
                 int idx = 0;
                 foreach (var e in list)
@@ -140,7 +145,6 @@ namespace FLib
                     return subtree;
                 }
             }
-
 
             // シリアライズできない場合、ある程度の深さまで探索して打ち切る
             if (depth < 5)
@@ -173,9 +177,6 @@ namespace FLib
             if (refPrefix.Length >= 1)
                 isLeaf = false; // 他のオブジェクトを参照するなら葉として扱わない
 
-
-
-
             // 葉っぱならバイナリデータとして保存する
             if (isLeaf)
             {
@@ -183,11 +184,8 @@ namespace FLib
                     return;
                 try
                 {
-                    // DataContact
                     new System.Runtime.Serialization.DataContractSerializer(tree.varType).WriteObject(xmlStream, tree.varValue);
-                    xmlStream.WriteByte(10);
-
-                    // TODO: reftable
+                    xmlStream.WriteByte(10); // 改行
                     varNameWriter.WriteLine(refPrefix + "L:" + newPath);
                     varTypeWriter.WriteLine(refPrefix + "L:" + tree.varType.ToString());
                 }
@@ -201,7 +199,6 @@ namespace FLib
             {
                 try
                 {
-                    // TODO: reftable
                     if (tree.varValue != null)
                     {
                         varNameWriter.WriteLine(refPrefix + newPath);
@@ -226,72 +223,17 @@ namespace FLib
         //
         //--------------------------------------------------------------------------------------
 
-        // TODO: この中間データ型を使わない実装にできるのでする
-        private class Tree
-        {
-            public string rawpath = "";
-            public Dictionary<string, Tree> nodes = new Dictionary<string, Tree>();
-            public SerializeTreeNode tree;
-
-            public Tree()
-            {
-                tree = new SerializeTreeNode();
-            }
-
-            public bool Add(string rawpath, SerializeTreeNode tree)
-            {
-                // 子供か
-                if (rawpath.StartsWith(this.rawpath))
-                {
-                    string subpath = rawpath.Substring(this.rawpath.Length + 1);
-                    string[] subtokens = subpath.Split('.');
-
-                    if (subtokens.Length == 0)
-                        return false;
-                    else if (subtokens.Length == 1)
-                    {
-                        nodes[subtokens[0]] = new Tree()
-                        {
-                            rawpath = rawpath,
-                            tree = tree,
-                        };
-                        return true;
-                    }
-                    else if (subtokens.Length >= 2)
-                    {
-                        if (nodes.ContainsKey(subtokens[0]))
-                            return nodes[subtokens[0]].Add(rawpath, tree);
-                    }
-
-                }
-                return false;
-            }
-
-            public void SetSerializeTreeNodeChildren()
-            {
-                if (nodes.Count <= 0)
-                    return;
-                foreach (var kv in nodes)
-                {
-                    kv.Value.SetSerializeTreeNodeChildren();
-                    tree.nodes.Add(kv.Value.tree);
-                }
-            }
-
-        }
-
         public static T Deserialize<T>(string dir, string filename)
             where T : class
         {
             return Deserialize(dir, filename, typeof(T)) as T;
         }
 
-        public static Object /*T*/ Deserialize(string dir, string filename, Type type)
+        public static Object Deserialize(string dir, string filename, Type type)
         {
             string valuePath = Path.Combine(dir, filename + ".xml");
             string namePath = Path.Combine(dir, filename + "_varnames.txt");
             string typePath = Path.Combine(dir, filename + "_vartypes.txt");
-
             using (var valueStream = File.OpenRead(valuePath))
             using (var nameStream = File.OpenRead(namePath))
             using (var nameReader = new StreamReader(nameStream))
@@ -301,11 +243,8 @@ namespace FLib
                 var name2tree = new Dictionary<string, SerializeTreeNode>();
                 SerializeTreeNode tree = BuildSerializeTree(Path.Combine(dir, filename), valueStream, nameReader, typeReader, name2tree);
                 Object obj = null;
-                if (tree.nodes.Count >= 1)
-                {
-                    if (tree.nodes[0].varType.FullName == type.FullName)
-                        obj = CreateInstance(tree.nodes[0]);
-                }
+                if (tree.varType.FullName == type.FullName)
+                    obj = CreateInstance(tree);
                 return obj;
             }
         }
@@ -316,8 +255,7 @@ namespace FLib
             List<Type> genericTypes = new List<Type>();
             GetCurrentDomainAssembliesType(name2type, genericTypes);
 
-            Tree nodeTreeInfo = new Tree();
-
+            SerializeTreeNode proc_tree = null;
             while (true)
             {
                 string rawname = nameReader.ReadLine();
@@ -353,13 +291,45 @@ namespace FLib
                     tree.varValue = ReadDataContactObject(valueStream, type);
                 }
 
-                nodeTreeInfo.Add(name, tree);
+                if (proc_tree == null)
+                    proc_tree = tree;
+                else
+                    AddSubTree(proc_tree, name, tree);
             }
 
-            nodeTreeInfo.SetSerializeTreeNodeChildren();
-
-            return nodeTreeInfo.tree;
+            return proc_tree;
         }
+        
+        static bool AddSubTree(SerializeTreeNode tree, string rawpath, SerializeTreeNode subtree)
+        {
+            rawpath =  rawpath.TrimStart('.');
+
+            int idx = rawpath.IndexOf('.');
+            if (idx < 0)
+                return false;
+
+            string restpath = rawpath.Substring(idx + 1);
+
+            if (restpath.Contains('.'))
+            {
+                // 次の探索ノードを探して再帰的に続ける
+                foreach (var n in tree.nodes)
+                {
+                    if (restpath.StartsWith(n.varName + "."))
+                    {
+                        AddSubTree(n, restpath, subtree);
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                // 現在のノードにsubtreeを追加
+                tree.nodes.Add(subtree);
+            }
+            return false;
+        }
+
 
         static Object ReadDataContactObject(Stream valueStream, Type type)
         {
@@ -397,31 +367,22 @@ namespace FLib
         static Object CreateInstance<T>(Type type, IEnumerable<T> content)
         {
             Object obj = new Object();
-
             if (content != null)
-            {
                 obj = Activator.CreateInstance(type, content);
-            }
-
             return obj;
         }
 
         static Object CreateInstance(Type type)
         {
             Object obj = new Object();
-
             if (type.IsArray)
             {
                 var elemType = type.GetElementType();
                 var rank = type.GetArrayRank();
                 if (rank <= 1)
-                {
                     obj = Array.CreateInstance(elemType, 0);
-                }
                 else
-                {
                     obj = Array.CreateInstance(elemType, new int[rank]);
-                }
             }
             else if (type.IsValueType)
             {
@@ -431,31 +392,28 @@ namespace FLib
                 }
                 catch
                 {
-                    if (type.FullName == typeof(string).FullName)
+                    if (IsString(type))
                         obj = "";
                 }
             }
             else
             {
                 var defaultConstructor = type.GetConstructor(Type.EmptyTypes);
-                // 引数のないconstuctorのときはuninitializeを使う
                 if (defaultConstructor == null)
                 {
+                    // 引数のないconstuctorのときはuninitializeを使う
                     try
                     {
-                        if (type.FullName == typeof(string).FullName)
+                        if (IsString(type))
                             obj = "";
                         else
                             obj = FormatterServices.GetUninitializedObject(type);
 
                     }
-                    catch
-                    {
-                    }
+                    catch { }
                 }
                 else
                 {
-
                     try
                     {
                         obj = Activator.CreateInstance(type);
@@ -466,23 +424,17 @@ namespace FLib
                         {
                             obj = Activator.CreateInstance(type, null);
                         }
-                        catch
-                        {
-                        }
+                        catch { }
                     }
                 }
             }
             return obj;
         }
 
-        private static Object CreateInstance(SerializeTreeNode tree)
+        static Object CreateInstance(SerializeTreeNode tree)
         {
             if (tree == null || tree.varType == null || tree.varName == null)
                 return null;
-
-            bool isLeaf = tree.nodes == null || tree.nodes.Count <= 0;
-
-
 
             if (tree.isRefer)
             {
@@ -491,10 +443,7 @@ namespace FLib
                 return refObj;
             }
 
-
-
-
-            if (isLeaf)
+            if (tree.nodes == null || tree.nodes.Count <= 0)
                 return tree.varValue;
 
             // 葉以外ならインスタンスを作ってリフレクションで各メンバに変数を代入
@@ -561,17 +510,8 @@ namespace FLib
                 }
             }
 
-
             // objの値をtreenodeに保存。あとで参照される場合に使う。
-            // treeが葉かはtree.nodesの要素数で判定するのでvarValueがnullになってなくても問題ない
-
-            if (tree.varType.FullName.Contains("Joint"))
-            {
-                var xxx = 0;
-            }
-
             tree.varValue = obj;
-
 
             return obj;
         }
@@ -616,14 +556,18 @@ namespace FLib
                 return false;
             return type.GetInterfaces().Any(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IDictionary<,>));
         }
+        static bool IsString(Type type)
+        {
+            if (type == null)
+                return false;
+            return type.FullName == typeof(string).FullName;
+        }
 
         //--------------------------------------------------------------------
         //
         // type name -> type
         //
         //--------------------------------------------------------------------
-
-        static readonly System.Text.RegularExpressions.Regex arraySuffix = new System.Text.RegularExpressions.Regex(@"\[,*\]$", System.Text.RegularExpressions.RegexOptions.Compiled);
 
         public static Type GetTypeFromName(String name, Dictionary<string, Type> name2type, List<Type> genericTypes)
         {
@@ -701,9 +645,6 @@ namespace FLib
                     Console.WriteLine(genType.ToString());
                     return genType;
                 }
-
-                //                if (String.Equals(type.FullName, name) || String.Equals(type.AssemblyQualifiedName, name))
-                //                  return type;
             }
 
             return null;

@@ -19,27 +19,31 @@ namespace FLib.Tests
 
             // シリアライズ
             var dict = Magic2D.SegmentToPatch.LoadPatches(".", "../../../../../../Patchwork_resources/GJ_ED3_Lite/3_segmentation", null, 2);
-            var patch = dict.ElementAt(1).Value;
-            patch.mesh.BeginDeformation();
-            ForceSerializer.Serialize("./patch", patch, "_patch");
 
-            // デシリアライズしてもういちどシリアライズ
-            var obj = ForceSerializer.Deserialize("./patch", "_patch", typeof(PatchworkLib.PatchMesh.PatchSkeletalMesh));
-            ForceSerializer.Serialize("./patch_deserialized", obj, "_patch");
+            for (int i = 0; i < 4; i++)
+            {
+//                if (i != 3)
+  //                  continue;
 
-            // 結果が同じか判定
-            var diffList_vartypes = Diff("./patch/_patch_vartypes.txt", "./patch_deserialized/_patch_vartypes.txt");
-            Assert.AreEqual(diffList_vartypes.Count, 0);
+                var patch = dict.ElementAt(i).Value;
+                patch.mesh.BeginDeformation();
+                ForceSerializer.Serialize("./patch", patch, "_patch");
 
-            var diffList_varnames = Diff("./patch/_patch_varnames.txt", "./patch_deserialized/_patch_varnames.txt");
-            Assert.AreEqual(diffList_varnames.Count, 0);
+                // デシリアライズしてもういちどシリアライズ
+                var obj = ForceSerializer.Deserialize("./patch", "_patch", typeof(PatchworkLib.PatchMesh.PatchSkeletalMesh));
+                ForceSerializer.Serialize("./patch_deserialized", obj, "_patch");
 
-            var diffList_values = DiffWithDeserialization("./patch/_patch.xml", "./patch_deserialized/_patch.xml");
-            Assert.AreEqual(diffList_values.Count, 0);
+                // 結果が同じか判定
+                var diffList_vartypes = Diff("./patch/_patch_vartypes.txt", "./patch_deserialized/_patch_vartypes.txt");
+                Assert.AreEqual(diffList_vartypes.Count, 0);
+
+                var diffList_varnames = Diff("./patch/_patch_varnames.txt", "./patch_deserialized/_patch_varnames.txt");
+                Assert.AreEqual(diffList_varnames.Count, 0);
+
+                var diffList_values = DiffWithDeserialization("./patch/_patch.xml", "./patch_deserialized/_patch.xml");
+                Assert.AreEqual(diffList_values.Count, 0);
+            }
         }
-
-        // 1) テスト書く
-        // 2) 
 
         Dictionary<int, Tuple<string, string>> Diff(string filepath1, string filepath2)
         {
