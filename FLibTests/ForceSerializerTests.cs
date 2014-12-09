@@ -22,16 +22,16 @@ namespace FLib.Tests
 
             for (int i = 0; i < 4; i++)
             {
-//                if (i != 3)
-  //                  continue;
+                //                if (i != 3)
+                //                  continue;
 
                 var patch = dict.ElementAt(i).Value;
                 patch.mesh.BeginDeformation();
-                ForceSerializer.Serialize("./patch", patch, "_patch");
+                ForceSerializer.Serialize(patch, "./patch", "_patch");
 
                 // デシリアライズしてもういちどシリアライズ
                 var obj = ForceSerializer.Deserialize("./patch", "_patch", typeof(PatchworkLib.PatchMesh.PatchSkeletalMesh));
-                ForceSerializer.Serialize("./patch_deserialized", obj, "_patch");
+                ForceSerializer.Serialize(obj, "./patch_deserialized", "_patch");
 
                 // 結果が同じか判定
                 var diffList_vartypes = Diff("./patch/_patch_vartypes.txt", "./patch_deserialized/_patch_vartypes.txt");

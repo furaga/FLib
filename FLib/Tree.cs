@@ -7,27 +7,27 @@ using System.Threading.Tasks;
 namespace FLib
 {
     // 
-    public class Tree<T>
+    public class VisitTree<T>
     {
         T value;
-        List<Tree<T>> children = new List<Tree<T>>();
-        Tree<T> parent;
+        List<VisitTree<T>> children = new List<VisitTree<T>>();
+        VisitTree<T> parent;
 
         public T Value { get { return value; } }
-        public Tree<T> Parent { get { return parent; } }
+        public VisitTree<T> Parent { get { return parent; } }
 
-        public Tree(T value)
+        public VisitTree(T value)
         {
             this.value = value;
         }
 
-        public void Add(Tree<T> t)
+        public void Add(VisitTree<T> t)
         {
             t.parent = this;
             children.Add(t);
         }
 
-        public void Remove(Tree<T> t)
+        public void Remove(VisitTree<T> t)
         {
             t.parent = null;
             children.Remove(t);
@@ -37,7 +37,7 @@ namespace FLib
         /// 現在のノードと、その子孫のノードに対して再帰的にvisitを適用する
         /// </summary>
         /// <param name="visit">(現在のノードの値, 親ノード) => 新しいノードの値</param>
-        public void Apply(Func<T, Tree<T>, T> visit, Func<T, T> visitOnRoot)
+        public void Apply(Func<T, VisitTree<T>, T> visit, Func<T, T> visitOnRoot)
         {
             if (parent == null)
                 value = visitOnRoot(value);
@@ -48,9 +48,9 @@ namespace FLib
                 child.Apply(visit, visitOnRoot);
         }
 
-        public List<Tree<T>> CopyChildren()
+        public List<VisitTree<T>> CopyChildren()
         {
-            return new List<Tree<T>>(children);
+            return new List<VisitTree<T>>(children);
         }
 
 

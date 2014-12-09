@@ -9,9 +9,14 @@ using System.Runtime.Serialization;
 namespace FLib
 {
     /// <summary>
-    /// リフレクションを使ってシリアライズできないクラスオブジェクトを無理やり（擬似的に）シリアライズする
-    /// 参照関係などは当然崩れる。
-    /// 正確さはいらないからさっと実行中のデータを保存して、テストとかに使いたい場合に役立つ
+    /// XMLSerializerなどではシリアライズできないオブジェクトをリフレクションを使って無理やりシリアライズする。参照関係もなるべく保持する。
+    /// 正確でなくていいから実行中のデータをさっと保存して回帰テストの入力などに使いたい場合に役立つ
+    /// 
+    /// 使い方: 
+    ///     SomeType obj = new SomeType();
+    ///     ForceSerializer.Serialize(obj, "./serialized", "obj01");
+    ///     obj = ForceSerializer.Deserialize<SomeType>("./serialized", "obj01");
+    /// 
     /// </summary>
     public class ForceSerializer
     {
@@ -53,30 +58,28 @@ namespace FLib
         //
         //--------------------------------------------------------------------------------------
 
-        public static void Serialize(string savePath, Object obj, string filename)
+        public static void Serialize(Object obj, string saveDir, string id)
         {
-            // objectをシリアライズ可能なデータ構造に変換する
-            var obj2tree = new Dictionary<object, SerializeTreeNode>();
-            var tree = MakeSerializable(obj, filename);
+            // objectをシリアライズ可能なデータ構造(SerializeTreeNode)に変換する
+            var tree = MakeSerializable(obj, id);
 
             // ディレクトリを作る
-            if (Directory.Exists(savePath))
-                ;
-            else
-                Directory.CreateDirectory(savePath);
+            if (!Directory.Exists(saveDir))
+                Directory.CreateDirectory(saveDir);
 
-            // 各ノード値と変数名をファイルに書き出す
-            using (Stream xmlstream = File.Open(Path.Combine(savePath, filename + ".xml"), FileMode.Create))
-            using (Stream varNameStream = File.Open(Path.Combine(savePath, filename + "_varnames.txt"), FileMode.Create))
+            // SerializeTreeNodeおよび変数名・変数型情報を外部ファイルに書き出す
+            using (Stream xmlstream = File.Open(Path.Combine(saveDir, id + ".xml"), FileMode.Create))
+            using (Stream varNameStream = File.Open(Path.Combine(saveDir, id + "_varnames.txt"), FileMode.Create))
             using (var varNameWriter = new StreamWriter(varNameStream))
-            using (Stream varTypeStream = File.Open(Path.Combine(savePath, filename + "_vartypes.txt"), FileMode.Create))
+            using (Stream varTypeStream = File.Open(Path.Combine(saveDir, id + "_vartypes.txt"), FileMode.Create))
             using (var varTypeWriter = new StreamWriter(varTypeStream))
             {
-                string xmlDir = Path.GetFullPath(Path.Combine(savePath, filename));
+                string xmlDir = Path.GetFullPath(Path.Combine(saveDir, id));
                 Save(xmlstream, varNameWriter, varTypeWriter, "", tree);
             }
         }
 
+        // object -> SerializeTreeNode
         static SerializeTreeNode MakeSerializable(Object obj, string name)
         {
             var obj2tree = new Dictionary<Object, SerializeTreeNode>();
@@ -84,6 +87,7 @@ namespace FLib
             return data;
         }
 
+        // リフレクションでobjのメンバ変数を列挙して、再帰的に各変数をSerializeTreeNodeに変換
         static List<SerializeTreeNode> BreakupObject(object obj, int depth, Dictionary<Object, SerializeTreeNode> obj2tree)
         {
             var data = new List<SerializeTreeNode>();
@@ -136,7 +140,7 @@ namespace FLib
             {
                 if (obj.GetType().IsGenericType && obj.GetType().GetGenericArguments().Any(t => !t.IsSerializable))
                 {
-                    // 型引数のいずれかがserialize可能でなければxmlserializerでバグる
+                    // 型引数のいずれかがserialize可能でなければxmlserializerで例外が出る       
                 }
                 else
                 {
@@ -223,39 +227,55 @@ namespace FLib
         //
         //--------------------------------------------------------------------------------------
 
-        public static T Deserialize<T>(string dir, string filename)
+        public static T Deserialize<T>(string dir, string id)
             where T : class
         {
-            return Deserialize(dir, filename, typeof(T)) as T;
+            return Deserialize(dir, id, typeof(T)) as T;
         }
 
-        public static Object Deserialize(string dir, string filename, Type type)
+        public static Object Deserialize(string dir, string id, Type type)
         {
-            string valuePath = Path.Combine(dir, filename + ".xml");
-            string namePath = Path.Combine(dir, filename + "_varnames.txt");
-            string typePath = Path.Combine(dir, filename + "_vartypes.txt");
+            string valuePath = Path.Combine(dir, id + ".xml");
+            string namePath = Path.Combine(dir, id + "_varnames.txt");
+            string typePath = Path.Combine(dir, id + "_vartypes.txt");
             using (var valueStream = File.OpenRead(valuePath))
             using (var nameStream = File.OpenRead(namePath))
             using (var nameReader = new StreamReader(nameStream))
             using (var typeStream = File.OpenRead(typePath))
             using (var typeReader = new StreamReader(typeStream))
             {
+                FTimer.Start("BuildSErializeTree");
+
                 var name2tree = new Dictionary<string, SerializeTreeNode>();
-                SerializeTreeNode tree = BuildSerializeTree(Path.Combine(dir, filename), valueStream, nameReader, typeReader, name2tree);
+                SerializeTreeNode tree = BuildSerializeTree(Path.Combine(dir, id), valueStream, nameReader, typeReader, name2tree);
+
+               float t1 =  FTimer.ElapsedMilliseconds("BuildSErializeTree");
+                
+                FTimer.Start("CreateInstance");
+
                 Object obj = null;
                 if (tree.varType.FullName == type.FullName)
                     obj = CreateInstance(tree);
+
+
+                float t2 = FTimer.ElapsedMilliseconds("CreateInstance");
+
                 return obj;
             }
         }
 
         static SerializeTreeNode BuildSerializeTree(string binDir, Stream valueStream, StreamReader nameReader, StreamReader typeReader, Dictionary<string, SerializeTreeNode> name2tree)
         {
+            Dictionary<string, Type> typeDict = new Dictionary<string, Type>();
+            var sr = new StreamReader(valueStream);
+
             Dictionary<string, Type> name2type = new Dictionary<string, Type>();
             List<Type> genericTypes = new List<Type>();
             GetCurrentDomainAssembliesType(name2type, genericTypes);
 
             SerializeTreeNode proc_tree = null;
+            List<SerializeTreeNode> dfs_path = new List<SerializeTreeNode>();
+
             while (true)
             {
                 string rawname = nameReader.ReadLine();
@@ -267,7 +287,8 @@ namespace FLib
                 string name = rawname.Split(':').Last();
                 string typeName = rawtypeName.Split(':').Last();
 
-                Type type = GetTypeFromName(typeName, name2type, genericTypes);
+                Type type = typeDict.ContainsKey(typeName) ? typeDict[typeName] : GetTypeFromName(typeName, name2type, genericTypes);
+                typeDict[typeName] = type;
 
                 var tree = new SerializeTreeNode();
                 tree.varName = name.Split('.').Last();
@@ -288,74 +309,48 @@ namespace FLib
                 {
                     if (type == null)
                         type = typeof(KeyValuePair<string, System.Drawing.PointF>);
-                    tree.varValue = ReadDataContactObject(valueStream, type);
+                    tree.varValue = ReadDataContactObject(sr, type);
                 }
 
                 if (proc_tree == null)
+                {
                     proc_tree = tree;
+                    dfs_path.Add(tree);
+                }
                 else
-                    AddSubTree(proc_tree, name, tree);
+                {
+                    int depth = name.Count(c => c == '.');
+                    if (depth <= 1)
+                    {
+
+                    }
+                    else if (dfs_path.Count >= depth)
+                    {
+                        // もどって追加
+                        dfs_path[depth - 2].nodes.Add(tree);
+                        dfs_path[depth - 1] = tree;
+                    }
+                    else if (dfs_path.Count + 1 == depth)
+                    {
+                        dfs_path[dfs_path.Count - 1].nodes.Add(tree);
+                        dfs_path.Add(tree);
+                    }
+                }
+
             }
 
             return proc_tree;
         }
-        
-        static bool AddSubTree(SerializeTreeNode tree, string rawpath, SerializeTreeNode subtree)
+
+        static Object ReadDataContactObject(StreamReader sr, Type type)
         {
-            rawpath =  rawpath.TrimStart('.');
-
-            int idx = rawpath.IndexOf('.');
-            if (idx < 0)
-                return false;
-
-            string restpath = rawpath.Substring(idx + 1);
-
-            if (restpath.Contains('.'))
-            {
-                // 次の探索ノードを探して再帰的に続ける
-                foreach (var n in tree.nodes)
-                {
-                    if (restpath.StartsWith(n.varName + "."))
-                    {
-                        AddSubTree(n, restpath, subtree);
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                // 現在のノードにsubtreeを追加
-                tree.nodes.Add(subtree);
-            }
-            return false;
-        }
-
-
-        static Object ReadDataContactObject(Stream valueStream, Type type)
-        {
-            Stream stream = new MemoryStream();
-            StreamWriter sw = new StreamWriter(stream);
-
-            while (true)
-            {
-                // 一文字ずつ読んでいって、"<?"かEOFが来たら今まで読まれた文字列をXMLデシリアライズする
-                int b = valueStream.ReadByte();
-                if (b != -1)
-                    stream.WriteByte((byte)b);
-                if (b == 10) // '\n'
-                {
-                    // XMLデシリアライズ
-                    //for debug
-                    stream.Seek(0, SeekOrigin.Begin);
-                    var content = new StreamReader(stream).ReadToEnd();
-
-                    stream.Seek(0, SeekOrigin.Begin);
-                    var obj = new System.Runtime.Serialization.DataContractSerializer(type).ReadObject(stream);
-                    return obj;
-                }
-                if (b == -1) // EOF
-                    return null;
-            }
+            var str = sr.ReadLine();
+            if (str == null)
+                return null;
+            Stream t_stream = new MemoryStream(str.Select(c => (byte)c).ToArray());
+            var serializer = new DataContractSerializer(type);
+            var obj = serializer.ReadObject(t_stream);
+            return obj;
         }
 
         //--------------------------------------------------------------------
@@ -575,7 +570,6 @@ namespace FLib
             if (name2type.ContainsKey(name))
                 return name2type[name];
 
-            bool isGeneric = false;
             List<Type> argtypes = new List<Type>();
 
             // 配列の場合"System.Single[]"      

@@ -177,6 +177,11 @@ namespace FLib.SharpDX
             info.Device.ImmediateContext.ClearRenderTargetView(info.RenderView, Color.Black);
         }
 
+        public static void ClearDepthStencilView(SharpDXInfo info)
+        {
+            info.Device.ImmediateContext.ClearDepthStencilView(info.DepthView, DepthStencilClearFlags.Depth, 1, 0);
+        }
+        
         public static void Draw(SharpDXInfo info, PrimitiveTopology primitiveType)
         {
             info.Device.ImmediateContext.InputAssembler.PrimitiveTopology = primitiveType;

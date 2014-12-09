@@ -54,6 +54,7 @@
     <Compile Include="BitmapIterator.cs" />
     <Compile Include="FileManager.cs" />
     <Compile Include="ForceSerializer.cs" />
+    <Compile Include="FTimer.cs" />
     <Compile Include="Tree.cs" />
     <Compile Include="Triangle.cs" />
     <Compile Include="FMath.cs" />

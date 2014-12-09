@@ -13,10 +13,10 @@ namespace FLib.Tests
         [TestMethod()]
         public void TreeTest()
         {
-            Tree<string> tree = new Tree<string>("0");
-            tree.Add(new Tree<string>("1a"));
-            tree.Add(new Tree<string>("1b"));
-            tree.Add(new Tree<string>("1c"));
+            VisitTree<string> tree = new VisitTree<string>("0");
+            tree.Add(new VisitTree<string>("1a"));
+            tree.Add(new VisitTree<string>("1b"));
+            tree.Add(new VisitTree<string>("1c"));
 
             var children = tree.CopyChildren();
             Assert.AreEqual(tree.Value, "0");
