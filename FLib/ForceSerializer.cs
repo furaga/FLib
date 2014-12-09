@@ -58,6 +58,12 @@ namespace FLib
         //
         //--------------------------------------------------------------------------------------
 
+        public static void Serialize(string saveDir, params Object[] objs)
+        {
+            for (int i = 0; i < objs.Length; i++)
+                Serialize(objs[i], saveDir, "obj" + i);
+        }
+
         public static void Serialize(Object obj, string saveDir, string id)
         {
             // objectをシリアライズ可能なデータ構造(SerializeTreeNode)に変換する
@@ -116,8 +122,8 @@ namespace FLib
                 return subtree;
             }
 
-                obj2tree[subtree.varValue] = subtree;
-            
+            obj2tree[subtree.varValue] = subtree;
+
             if (IsString(obj.GetType()))
             {
                 //stringの場合、charの配列に分解されたくない
@@ -144,7 +150,6 @@ namespace FLib
                 }
                 else
                 {
-                    //                    subtree.varValue = obj;
                     System.Diagnostics.Debug.Assert(subtree.varValue != null, "subtree.value is serializable but assigned null");
                     return subtree;
                 }
@@ -166,7 +171,6 @@ namespace FLib
             return string.Format("{0}[{1}]'{2}", name, idx, typeArgIdx);
         }
 
-        // treeのとおりの階層構造をもつディレクトリとして各変数を保存する
         static void Save(Stream xmlStream, StreamWriter varNameWriter, StreamWriter varTypeWriter, string varPath, SerializeTreeNode tree)
         {
             if (tree.varName == null)
@@ -181,7 +185,6 @@ namespace FLib
             if (refPrefix.Length >= 1)
                 isLeaf = false; // 他のオブジェクトを参照するなら葉として扱わない
 
-            // 葉っぱならバイナリデータとして保存する
             if (isLeaf)
             {
                 if (tree.varValue == null)
@@ -227,6 +230,37 @@ namespace FLib
         //
         //--------------------------------------------------------------------------------------
 
+        public static void Deserialize<T>(string dir, out T obj, int offset = 0)
+        {
+            obj = (T)Deserialize(dir, "obj" + (offset + 0), typeof(T));
+        }
+        public static void Deserialize<T1, T2>(string dir, out T1 obj1, out T2 obj2, int offset = 0)
+        {
+            obj1 = (T1)Deserialize(dir, "obj" + (offset + 0), typeof(T1));
+            obj2 = (T2)Deserialize(dir, "obj" + (offset + 1), typeof(T2));
+        }
+        public static void Deserialize<T1, T2, T3>(string dir, out T1 obj1, out T2 obj2, out T3 obj3, int offset = 0)
+        {
+            obj1 = (T1)Deserialize(dir, "obj" +(offset +  0), typeof(T1));
+            obj2 = (T2)Deserialize(dir, "obj" + (offset + 1), typeof(T2));
+            obj3 = (T3)Deserialize(dir, "obj" + (offset + 2), typeof(T3));
+        }
+        public static void Deserialize<T1, T2, T3, T4>(string dir, out T1 obj1, out T2 obj2, out T3 obj3, out T4 obj4, int offset = 0)
+        {
+            obj1 = (T1)Deserialize(dir, "obj" +(offset +  0), typeof(T1));
+            obj2 = (T2)Deserialize(dir, "obj" +(offset +  1), typeof(T2));
+            obj3 = (T3)Deserialize(dir, "obj" + (offset + 2), typeof(T3));
+            obj4 = (T4)Deserialize(dir, "obj" + (offset + 3), typeof(T4));
+        }
+        public static void Deserialize<T1, T2, T3, T4, T5>(string dir, out T1 obj1, out T2 obj2, out T3 obj3, out T4 obj4, out T5 obj5, int offset = 0)
+        {
+            obj1 = (T1)Deserialize(dir, "obj" + (offset + 0), typeof(T1));
+            obj2 = (T2)Deserialize(dir, "obj" + (offset + 1), typeof(T2));
+            obj3 = (T3)Deserialize(dir, "obj" + (offset + 2), typeof(T3));
+            obj4 = (T4)Deserialize(dir, "obj" + (offset + 3), typeof(T4));
+            obj5 = (T5)Deserialize(dir, "obj" + (offset + 4), typeof(T5));
+        }
+
         public static T Deserialize<T>(string dir, string id)
             where T : class
         {
@@ -244,22 +278,11 @@ namespace FLib
             using (var typeStream = File.OpenRead(typePath))
             using (var typeReader = new StreamReader(typeStream))
             {
-                FTimer.Start("BuildSErializeTree");
-
                 var name2tree = new Dictionary<string, SerializeTreeNode>();
                 SerializeTreeNode tree = BuildSerializeTree(Path.Combine(dir, id), valueStream, nameReader, typeReader, name2tree);
-
-               float t1 =  FTimer.ElapsedMilliseconds("BuildSErializeTree");
-                
-                FTimer.Start("CreateInstance");
-
                 Object obj = null;
                 if (tree.varType.FullName == type.FullName)
                     obj = CreateInstance(tree);
-
-
-                float t2 = FTimer.ElapsedMilliseconds("CreateInstance");
-
                 return obj;
             }
         }
@@ -322,11 +345,9 @@ namespace FLib
                     int depth = name.Count(c => c == '.');
                     if (depth <= 1)
                     {
-
                     }
                     else if (dfs_path.Count >= depth)
                     {
-                        // もどって追加
                         dfs_path[depth - 2].nodes.Add(tree);
                         dfs_path[depth - 1] = tree;
                     }
@@ -336,7 +357,6 @@ namespace FLib
                         dfs_path.Add(tree);
                     }
                 }
-
             }
 
             return proc_tree;
@@ -367,6 +387,18 @@ namespace FLib
             return obj;
         }
 
+
+        //
+        // 要検討：
+        // FormatterServices.GetUninitializedObject(type)だと unmanaged なインスタンスが生成されるらしい。
+        // そのため、これを使って配列の各要素を生成し、array.Select(x => xxx).ToList() などとするとAccessViolationExceptionがでるみたい。
+        //
+        // 一方でGetUninitializedObject()を使っても問題なく動作するケースもあり、よくわからない
+        // (PatchworkLib.PatchMeshなど構造体を直接メンバに持たないクラスなら大丈夫？)
+        //
+        // ひとまず、空のコンストラクタがないがコピーコンストラクタが定義されている場合、いったんGetUninitializedObject()で生成したオブジェクトをコピーコンストラクタに渡している
+        // こうするとバグるケースが少なくなる模様
+        // 
         static Object CreateInstance(Type type)
         {
             Object obj = new Object();
@@ -383,12 +415,15 @@ namespace FLib
             {
                 try
                 {
-                    obj = FormatterServices.GetUninitializedObject(type);
+                    //     obj = FormatterServices.GetUninitializedObject(type);
+                    obj = Activator.CreateInstance(type);
                 }
                 catch
                 {
                     if (IsString(type))
                         obj = "";
+                    else
+                        obj = FormatterServices.GetSafeUninitializedObject(type);
                 }
             }
             else
@@ -402,8 +437,14 @@ namespace FLib
                         if (IsString(type))
                             obj = "";
                         else
-                            obj = FormatterServices.GetUninitializedObject(type);
+                        {
+                            obj = FormatterServices.GetSafeUninitializedObject(type);
 
+                            // コピーコンストラクタあればコピーする
+                            var copyConstructor = type.GetConstructor(new Type[] { type });
+                            if (copyConstructor != null)
+                                obj = copyConstructor.Invoke(new object[] { obj });
+                        }
                     }
                     catch { }
                 }
@@ -428,7 +469,7 @@ namespace FLib
 
         static Object CreateInstance(SerializeTreeNode tree)
         {
-            if (tree == null || tree.varType == null || tree.varName == null)
+            if (tree == null || tree.varType == null || tree.varName == null || tree.varName.Contains('$'))
                 return null;
 
             if (tree.isRefer)
