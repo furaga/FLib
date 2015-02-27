@@ -89,5 +89,76 @@ namespace FLib
 
             return FromSketch(sketch, w, h, pen, clearColor);
         }
+
+        /// <summary>
+        /// 自作VS拡張機能Inspector2Dの内部で使用。基本的には使用禁止
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="w"></param>
+        /// <param name="h"></param>
+        /// <param name="objs"></param>
+        /// <param name="types"></param>
+        public static void DrawAndSave(string path, int w, int h, object obj, string type, int param, int argb)
+        {
+            Color color = Color.FromArgb(argb);
+            Bitmap bmp;
+            if (type == "As Bitmap")
+            {
+                bmp = obj as Bitmap;
+            }
+            else
+            {
+                bmp = new Bitmap(w, h);
+            }
+            try
+            {
+                if (type == "As Bitmap")
+                {
+                }
+                else
+                {
+                    using (var g = Graphics.FromImage(bmp))
+                    {
+                        switch (type)
+                        {
+                            case "As Lines":
+                                dynamic lines = obj;
+                                g.DrawLines(new Pen(color, param), lines.ToArray());
+                                break;
+                            case "As Points":
+                                try
+                                {
+                                    // Point型の場合
+                                    dynamic pt = obj;
+                                    float x = pt.X;
+                                    float y = pt.Y;
+                                    float size = param;
+                                    g.FillRectangle(new SolidBrush(color), x - size / 2, y - size / 2, size, size);
+                                }
+                                catch
+                                {
+                                    // IEnumerable<Point>の場合
+                                    dynamic pts = obj;
+                                    for (int j = 0; j < pts.ToArray().Length; j++)
+                                    {
+                                        float x = pts[j].X;
+                                        float y = pts[j].Y;
+                                        float size = param;
+                                        g.FillRectangle(new SolidBrush(color), x - size / 2, y - size / 2, size, size);
+                                    }
+                                }
+                                break;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+            finally
+            {
+                bmp.Save(path);
+            }
+        }
     }
 }

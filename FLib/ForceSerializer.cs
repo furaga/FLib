@@ -260,6 +260,10 @@ namespace FLib
             obj4 = (T4)Deserialize(dir, "obj" + (offset + 3), typeof(T4));
             obj5 = (T5)Deserialize(dir, "obj" + (offset + 4), typeof(T5));
         }
+        public static void Deserialize<T>(string dir, string id, out T obj)
+        {
+            obj = (T)Deserialize(dir, id, typeof(T));
+        }
 
         public static T Deserialize<T>(string dir, string id)
             where T : class

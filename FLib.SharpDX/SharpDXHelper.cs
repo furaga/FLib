@@ -9,8 +9,10 @@ using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
 using SharpDX.Windows;
+
 using Buffer = SharpDX.Direct3D11.Buffer;
 using Device = SharpDX.Direct3D11.Device;
+using D2D = SharpDX.Direct2D1;
 using MapFlags = SharpDX.Direct3D11.MapFlags;
 
 namespace FLib.SharpDX
@@ -328,6 +330,36 @@ namespace FLib.SharpDX
         public Texture2D CopyTexture(Texture2D texture)
         {
             return texture;
+        }
+
+
+        public static void ToBitmap(SharpDXInfo info)
+        {
+            var m_texture = Texture2D.FromSwapChain<Texture2D>(info.SwapChain, 0);
+            var m_surface = m_texture.QueryInterface<Surface>();
+
+            D2D.RenderTarget m_renderTarget;
+            using (D2D.Factory factory = new D2D.Factory())
+            {
+                m_renderTarget = new D2D.RenderTarget(
+                    factory,
+                    m_surface,
+                    new D2D.RenderTargetProperties()
+                    {
+                        DpiX = 0.0f, // default dpi
+                        DpiY = 0.0f, // default dpi
+                        MinLevel = D2D.FeatureLevel.Level_DEFAULT,
+                        Type = D2D.RenderTargetType.Hardware,
+                        Usage = D2D.RenderTargetUsage.None,
+                        PixelFormat = new D2D.PixelFormat(
+                            Format.Unknown,
+                            D2D.AlphaMode.Premultiplied
+                        )
+                    }
+                );
+            }
+
+            var m_bitmap = new D2D.Bitmap(m_renderTarget, m_surface);
         }
 
 

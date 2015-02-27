@@ -334,15 +334,27 @@ namespace FLib
         {
             if (curve == null || curve.Count < 3)
                 return 0;
-            float l0 = Distance(curve[1], curve[0]);
-            float l1 = Distance(curve[1], curve[2]);
+            float l0 = Distance(curve[curve.Count - 2], curve[curve.Count - 3]);
+            float l1 = Distance(curve[curve.Count - 2], curve[curve.Count - 1]);
             if (l0 <= 1e-4 || l1 < 1e-4)
                 return 0;
-            float dx0 = (curve[1].X - curve[0].X) / l0;
-            float dy0 = (curve[1].Y - curve[0].Y) / l0;
-            float dx1 = (curve[2].X - curve[1].X) / l1;
-            float dy1 = (curve[2].Y - curve[1].Y) / l1;
+            float dx0 = (curve[curve.Count - 2].X - curve[curve.Count - 3].X) / l0;
+            float dy0 = (curve[curve.Count - 2].Y - curve[curve.Count - 3].Y) / l0;
+            float dx1 = (curve[curve.Count - 1].X - curve[curve.Count - 2].X) / l1;
+            float dy1 = (curve[curve.Count - 1].Y - curve[curve.Count - 2].Y) / l1;
             return dx0 * dx1 + dy0 * dy1;
+
+            //if (curve == null || curve.Count < 3)
+            //    return 0;
+            //float l0 = Distance(curve[1], curve[0]);
+            //float l1 = Distance(curve[1], curve[2]);
+            //if (l0 <= 1e-4 || l1 < 1e-4)
+            //    return 0;
+            //float dx0 = (curve[1].X - curve[0].X) / l0;
+            //float dy0 = (curve[1].Y - curve[0].Y) / l0;
+            //float dx1 = (curve[2].X - curve[1].X) / l1;
+            //float dy1 = (curve[2].Y - curve[1].Y) / l1;
+            //return dx0 * dx1 + dy0 * dy1;
         }
 
         public static float GetSide(PointF p, PointF src, PointF dst)
@@ -457,6 +469,30 @@ namespace FLib
                 _path.Add(new PointF(path[i].X + offsetx, path[i].Y + offsety));
             return _path;
         }
+
+        public static float ParameterOnLine(PointF pt, PointF start, PointF end)
+        {
+            float dx = pt.X - start.X;
+            float dy = pt.Y - start.Y;
+            float len = (float)Math.Sqrt(dx * dx + dy * dy);
+            if (Math.Abs(len) <= 1e-4)
+                return float.NaN;
+            
+            float lx = end.X - start.X;
+            float ly = end.Y - start.Y;
+            float llen = (float)Math.Sqrt(lx * lx + ly * ly);
+            if (Math.Abs(llen) <= 1e-4)
+                return float.NaN;
+            dx /= llen;
+            dy /= llen;
+            lx /= llen;
+            ly /= llen;
+
+            float cos = dx * lx + dy * ly;
+
+            return cos;
+        }
+
 
     }
 }

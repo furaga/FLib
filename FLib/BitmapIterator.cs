@@ -19,10 +19,10 @@ namespace FLib
     ///         for (int x = ...)
     ///         {
     ///             int idx = 4 * x + y * iter.Stride;
-    ///             byte a = data[idx + 0]
-    ///             byte r = data[idx + 1]
-    ///             byte g = data[idx + 2]
-    ///             byte b = data[idx + 3]
+    ///             byte b = data[idx + 0]
+    ///             byte g = data[idx + 1]
+    ///             byte r = data[idx + 2]
+    ///             byte a = data[idx + 3]
     ///             ...
     ///         }
     ///     }

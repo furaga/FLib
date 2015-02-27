@@ -53,6 +53,7 @@
     <Compile Include="BitmapHandler.cs" />
     <Compile Include="BitmapIterator.cs" />
     <Compile Include="FileManager.cs" />
+    <Compile Include="FLib.cs" />
     <Compile Include="ForceSerializer.cs" />
     <Compile Include="FTimer.cs" />
     <Compile Include="Tree.cs" />

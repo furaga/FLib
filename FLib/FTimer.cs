@@ -41,5 +41,23 @@ namespace FLib
                 return -1;
             return timerHist[id].ElapsedMilliseconds;
         }
+
+        public static void AllReset()
+        {
+            foreach (var kv in timerHist)
+            {
+                kv.Value.Reset();
+            }
+        }
+
+        public static string Output()
+        {
+            var str = "";
+            foreach (var kv in timerHist)
+            {
+                str += kv.Key + ": " + kv.Value.ElapsedMilliseconds + " ms\n";
+            }
+            return str;
+        }
     }
 }
